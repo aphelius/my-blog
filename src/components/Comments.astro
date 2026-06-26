@@ -1,0 +1,80 @@
+---
+import { GISCUS } from "@/constants";
+---
+
+<section
+  id="comments"
+  class="mt-4"
+  data-giscus={JSON.stringify(GISCUS)}
+  aria-label="评论"
+>
+</section>
+
+<script>
+  import { GISCUS } from "@/constants";
+
+  type GiscusTheme = "light" | "dark";
+
+  function currentTheme(): GiscusTheme {
+    return document.documentElement.getAttribute("data-theme") === "dark"
+      ? "dark"
+      : "light";
+  }
+
+  /** 向已加载的 giscus iframe 推送主题变化 */
+  function postTheme(theme: GiscusTheme) {
+    const iframe =
+      document.querySelector<HTMLIFrameElement>("iframe.giscus-frame");
+    iframe?.contentWindow?.postMessage(
+      { giscus: { setConfig: { theme } } },
+      "https://giscus.app"
+    );
+  }
+
+  /** 在评论容器内注入 giscus 脚本（每次页面加载执行一次） */
+  function loadGiscus() {
+    const container = document.getElementById("comments");
+    if (!container) return;
+    // 软导航后容器是全新的，但保险起见避免重复注入
+    if (container.querySelector("script")) return;
+
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.crossOrigin = "anonymous";
+    script.async = true;
+
+    const attrs: Record<string, string> = {
+      "data-repo": GISCUS.repo,
+      "data-repo-id": GISCUS.repoId,
+      "data-category": GISCUS.category,
+      "data-category-id": GISCUS.categoryId,
+      "data-mapping": GISCUS.mapping,
+      "data-strict": "0",
+      "data-reactions-enabled": GISCUS.reactionsEnabled,
+      "data-emit-metadata": GISCUS.emitMetadata,
+      "data-input-position": GISCUS.inputPosition,
+      "data-theme": currentTheme(),
+      "data-lang": GISCUS.lang,
+      "data-loading": "lazy",
+    };
+    for (const [key, value] of Object.entries(attrs)) {
+      script.setAttribute(key, value);
+    }
+    container.appendChild(script);
+  }
+
+  // 监听站点主题切换，同步给 giscus
+  let observer: MutationObserver | null = null;
+  function watchTheme() {
+    observer?.disconnect();
+    observer = new MutationObserver(() => postTheme(currentTheme()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+
+  document.addEventListener("astro:page-load", () => {
+    loadGiscus();
+    watchTheme();
+  });
