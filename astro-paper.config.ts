@@ -30,7 +30,7 @@ export default defineAstroPaperConfig({
   },
   socials: [
     { name: "github",  url: "https://github.com/aphelius" },
-    { name: "discord", url: "https://discord.com/channels/alpha_lius" },
+    { name: "discord", url: "https://discord.gg/DhUMx9MUm" },
     { name: "mail",    url: "mailto:cnljj1001@gmail.com" },
   ],
   shareLinks: [
