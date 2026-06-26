@@ -62,7 +62,7 @@ const homePath = getRelativeLocaleUrl(locale, "");
         你可以浏览下方的文章，或通过
         <LinkButton
           class="hover:text-accent underline decoration-dashed underline-offset-4"
-          href={getRelativeLocaleUrl(locale, "rss.xml")}
+          href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
         >
           RSS
         </LinkButton> 订阅更新。
