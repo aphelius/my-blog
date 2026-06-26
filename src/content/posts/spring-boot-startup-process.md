@@ -1,6 +1,7 @@
 ---
 author: Alphalius
 pubDatetime: 2026-06-26T02:00:00.000Z
+modDatetime: 2026-06-26T09:53:00.000Z
 title: 深入理解 Spring Boot 的启动流程
 slug: spring-boot-startup-process
 featured: true
@@ -179,5 +180,3 @@ Spring Boot 的启动流程，本质上可以归纳成三句话：
 3. **`refresh()` 之后**执行 Runner、广播 Ready 事件，应用正式对外服务。
 
 理解了这条主线，再去看那些扩展点（事件监听、`BeanPostProcessor`、自定义 starter），就不会迷失在源码里——你随时知道自己站在启动流程的哪一段。
-
-下一篇我打算挑其中的「自动配置」单独展开，写写如何手写一个 starter。如果你对某个阶段特别感兴趣，欢迎留言告诉我。
