@@ -5,7 +5,7 @@ export default defineAstroPaperConfig({
     url: "https://my-blog-5z2.pages.dev/",
     title: "我的博客",
     description: "记录技术、学习与思考的个人博客。",
-    author: "博主",
+    author: "磕盐人",
     profile: "https://example.com",
     ogImage: "default-og.jpg",
     lang: "zh",
