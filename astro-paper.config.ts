@@ -3,8 +3,8 @@ import { defineAstroPaperConfig } from "./src/types/config";
 export default defineAstroPaperConfig({
   site: {
     url: "https://my-blog-5z2.pages.dev/",
-    title: "我的博客",
-    description: "记录技术、学习与思考的个人博客。",
+    title: "盐究笔记",
+    description: "一个磕盐人的技术自留地 —— 记录学习、项目实践与踩坑，把折腾明白的东西写清楚。",
     author: "磕盐人",
     profile: "https://example.com",
     ogImage: "default-og.jpg",
@@ -29,6 +29,7 @@ export default defineAstroPaperConfig({
     search: "pagefind",
   },
   socials: [
+    { name: "github",  url: "https://github.com/aphelius" },
     { name: "discord", url: "https://discord.com/channels/alpha_lius" },
     { name: "mail",    url: "mailto:cnljj1001@gmail.com" },
   ],
