@@ -1,6 +1,6 @@
 ---
 author: Alphalius
-pubDatetime: 2026-06-26T10:00:00.000Z
+pubDatetime: 2026-06-26T02:00:00.000Z
 title: 深入理解 Spring Boot 的启动流程
 slug: spring-boot-startup-process
 featured: true
