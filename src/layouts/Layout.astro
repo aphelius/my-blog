@@ -11,6 +11,7 @@ type Props = {
   description?: string;
   ogImage?: string;
   canonicalURL?: string;
+  bgEffect?: boolean;
 };
 
 const { site } = config;
@@ -20,6 +21,7 @@ const {
   description = site.description,
   ogImage = resolveDefaultOgImagePath(config),
   canonicalURL = new URL(Astro.url.pathname, Astro.site).href,
+  bgEffect = true,
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.site ?? Astro.url);
@@ -115,6 +117,18 @@ const rssHref = `${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`;
   <body
     class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"
   >
+    {
+      bgEffect && (
+        <>
+          <div class="aurora-bg" aria-hidden="true">
+            <span class="aurora-blob aurora-blob-1" />
+            <span class="aurora-blob aurora-blob-2" />
+            <span class="aurora-blob aurora-blob-3" />
+          </div>
+          <div class="cursor-lens" aria-hidden="true" />
+        </>
+      )
+    }
     <slot />
     <script>
       import "@/scripts/theme";

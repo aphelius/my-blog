@@ -193,8 +193,109 @@
   transform: none;
 }
 
+/* ---------- 6. 极光动态背景（非阅读页） ---------- */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  /* 极淡的网点纹理，打破纯色 */
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-foreground) 22%, transparent) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 26px 26px;
+  opacity: 1;
+  mask-image: radial-gradient(ellipse at center, #000 50%, transparent 100%);
+}
+.aurora-blob {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.4;
+  will-change: transform;
+}
+.aurora-blob-1 {
+  top: -14vmax;
+  inset-inline-start: -10vmax;
+  background: radial-gradient(circle at center, var(--color-accent), transparent 65%);
+  animation: aurora-drift-1 7s ease-in-out infinite alternate;
+}
+.aurora-blob-2 {
+  bottom: -16vmax;
+  inset-inline-end: -12vmax;
+  background: radial-gradient(circle at center, var(--color-foreground), transparent 65%);
+  opacity: 0.16;
+  animation: aurora-drift-2 9s ease-in-out infinite alternate;
+}
+.aurora-blob-3 {
+  top: 30%;
+  inset-inline-start: 45%;
+  width: 30vmax;
+  height: 30vmax;
+  background: radial-gradient(circle at center, var(--color-accent), transparent 70%);
+  opacity: 0.3;
+  animation: aurora-drift-3 8s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift-1 {
+  to {
+    transform: translate(14vmax, 10vmax) scale(1.15);
+  }
+}
+@keyframes aurora-drift-2 {
+  to {
+    transform: translate(-12vmax, -8vmax) scale(1.2);
+  }
+}
+@keyframes aurora-drift-3 {
+  to {
+    transform: translate(-10vmax, 12vmax) scale(0.85);
+  }
+}
+
+/* ---------- 7. 跟随鼠标的反相圆（仿 MiMo，非阅读页） ---------- */
+/* 实心乳白圆 + difference 混合，缓动跟随；悬停可点击元素时放大 */
+.cursor-lens {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px; /* 让 translate(x,y) 以圆心对齐光标 */
+  border-radius: 50%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  background: #f6f3ec;
+  mix-blend-mode: difference;
+  transition:
+    opacity 0.3s ease,
+    width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.cursor-lens.is-active {
+  opacity: 1;
+}
+/* 悬停链接 / 按钮时放大 */
+.cursor-lens.is-hover {
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+}
+
 /* ---------- 无障碍：减弱动态效果时全部关闭 ---------- */
 @media (prefers-reduced-motion: reduce) {
+  .aurora-blob {
+    animation: none;
+  }
+  .cursor-lens {
+    display: none;
+  }
   .like-btn.is-liked .like-heart,
   .mascot-toast.is-shown .mascot-face {
     animation: none;
