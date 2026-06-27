@@ -1,0 +1,231 @@
+---
+// 文章互动：点赞鼓励弹窗 + 久读友好提示。
+// 纯前端实现，点赞状态按文章路径存于 localStorage（本地点赞，无跨访客计数）。
+---
+
+<div
+  id="reactions"
+  class="reactions mt-10 flex flex-col items-center gap-3 text-center"
+>
+  <button
+    id="like-btn"
+    type="button"
+    aria-pressed="false"
+    class="like-btn border-border hover:border-accent hover:text-accent focus-visible:border-accent inline-flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-medium transition-colors"
+  >
+    <svg
+      class="like-heart size-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path
+        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"
+      ></path>
+    </svg>
+    <span class="like-label">赞一个</span>
+    <span id="like-count" class="tabular-nums">0</span>
+  </button>
+  <p class="text-muted-foreground text-sm">
+    如果这篇文章帮到你，点个赞鼓励一下吧～
+  </p>
+</div>
+
+<script>
+  const MASCOTS = ["🐳", "🐱", "🦊", "🐧", "🌟", "🎉", "🍀", "🚀"];
+  const PRAISES = [
+    "你真棒！愿你今天也元气满满～",
+    "认真读完的你，超级厉害！",
+    "谢谢你的鼓励，这就是写作的动力！",
+    "继续保持好奇心，你会越来越强～",
+    "学到就是赚到，为爱学习的你点赞！",
+    "你的每一次坚持都算数 💪",
+  ];
+
+  const prefersReducedMotion = () =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function slug() {
+    return location.pathname.replace(/\/+$/, "");
+  }
+  function postKey() {
+    return "liked:" + slug();
+  }
+
+  /** 拉取该文章的全站点赞数 */
+  async function fetchCount(): Promise<number | null> {
+    try {
+      const res = await fetch(
+        "/api/likes?slug=" + encodeURIComponent(slug())
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { count?: number };
+      return typeof data.count === "number" ? data.count : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** 提交点赞 / 取消，返回最新计数 */
+  async function sendLike(action: "like" | "unlike"): Promise<number | null> {
+    try {
+      const res = await fetch(
+        "/api/likes?slug=" + encodeURIComponent(slug()),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action }),
+        }
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as { count?: number };
+      return typeof data.count === "number" ? data.count : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** 角落弹出卡通吉祥物 + 赞扬气泡 */
+  function showMascot() {
+    document.getElementById("mascot-toast")?.remove();
+
+    const face = MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
+    const praise = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+
+    const toast = document.createElement("div");
+    toast.id = "mascot-toast";
+    toast.className =
+      "mascot-toast bg-background border-border text-foreground fixed bottom-6 end-6 z-50 flex max-w-[18rem] items-end gap-2 rounded-2xl border p-3 shadow-lg";
+    toast.setAttribute("role", "status");
+    toast.innerHTML = `
+      <span class="mascot-face text-4xl leading-none" aria-hidden="true">${face}</span>
+      <span class="mascot-bubble text-sm leading-snug">${praise}</span>
+    `;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("is-shown"));
+    window.setTimeout(() => {
+      toast.classList.remove("is-shown");
+      toast.addEventListener("transitionend", () => toast.remove(), {
+        once: true,
+      });
+      window.setTimeout(() => toast.remove(), 600);
+    }, 3500);
+  }
+
+  /** 从按钮位置喷出彩带 */
+  function burstConfetti(origin: HTMLElement) {
+    if (prefersReducedMotion()) return;
+    const rect = origin.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#a855f7"];
+
+    for (let i = 0; i < 24; i++) {
+      const piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 90;
+      piece.style.setProperty("--dx", `${Math.cos(angle) * dist}px`);
+      piece.style.setProperty("--dy", `${Math.sin(angle) * dist - 40}px`);
+      piece.style.left = `${cx}px`;
+      piece.style.top = `${cy}px`;
+      piece.style.background = colors[i % colors.length];
+      piece.style.animationDelay = `${Math.random() * 80}ms`;
+      document.body.appendChild(piece);
+      piece.addEventListener("animationend", () => piece.remove(), {
+        once: true,
+      });
+    }
+  }
+
+  function initReactions() {
+    const btn = document.getElementById("like-btn") as HTMLButtonElement | null;
+    const countEl = document.getElementById("like-count");
+    if (!btn || !countEl) return;
+
+    // 本浏览器是否已赞（防重复刷数），计数以服务器为准
+    const liked = localStorage.getItem(postKey()) === "1";
+    btn.setAttribute("aria-pressed", String(liked));
+    btn.classList.toggle("is-liked", liked);
+
+    // 拉取真实全站计数
+    fetchCount().then(count => {
+      if (count !== null) countEl.textContent = String(count);
+    });
+
+    let busy = false;
+    btn.addEventListener("click", async () => {
+      if (busy) return;
+      busy = true;
+      btn.disabled = true;
+
+      const nowLiked = btn.getAttribute("aria-pressed") !== "true";
+      btn.setAttribute("aria-pressed", String(nowLiked));
+      btn.classList.toggle("is-liked", nowLiked);
+
+      if (nowLiked) {
+        localStorage.setItem(postKey(), "1");
+        burstConfetti(btn);
+        showMascot();
+      } else {
+        localStorage.removeItem(postKey());
+      }
+
+      const count = await sendLike(nowLiked ? "like" : "unlike");
+      if (count !== null) countEl.textContent = String(count);
+
+      busy = false;
+      btn.disabled = false;
+    });
+  }
+
+  /** 久读友好提示：读够 5 分钟，从底部滑出一条温柔提醒（每篇仅一次） */
+  let readTimer: number | undefined;
+  function initReadingNudge() {
+    if (readTimer) window.clearTimeout(readTimer);
+    const seenKey = "nudged:" + location.pathname.replace(/\/+$/, "");
+    if (sessionStorage.getItem(seenKey) === "1") return;
+
+    readTimer = window.setTimeout(
+      () => {
+        if (document.hidden) return;
+        sessionStorage.setItem(seenKey, "1");
+
+        const tip = document.createElement("div");
+        tip.className =
+          "reading-nudge bg-background border-border text-foreground fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-sm items-center gap-3 rounded-2xl border p-3 text-sm shadow-lg sm:inset-x-auto sm:end-6 sm:start-auto";
+        tip.setAttribute("role", "status");
+        tip.innerHTML = `
+          <span class="text-2xl leading-none" aria-hidden="true">☕</span>
+          <span class="flex-1 leading-snug">读得好认真～记得起身活动一下、喝口水，眼睛也歇歇 🌿</span>
+          <button type="button" class="nudge-close text-muted-foreground hover:text-foreground shrink-0 text-lg leading-none" aria-label="关闭提示">&times;</button>
+        `;
+        document.body.appendChild(tip);
+        requestAnimationFrame(() => tip.classList.add("is-shown"));
+
+        const dismiss = () => {
+          tip.classList.remove("is-shown");
+          window.setTimeout(() => tip.remove(), 500);
+        };
+        tip.querySelector(".nudge-close")?.addEventListener("click", dismiss);
+        window.setTimeout(dismiss, 8000);
+      },
+      5 * 60 * 1000
+    );
+  }
+
+  document.addEventListener("astro:page-load", () => {
+    initReactions();
+    initReadingNudge();
+  });
+  // 软导航离开页面时清除计时器，避免在新页面误触发
+  document.addEventListener("astro:before-swap", () => {
+    if (readTimer) window.clearTimeout(readTimer);
+    document.getElementById("mascot-toast")?.remove();
+  });
+</script>
