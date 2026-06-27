@@ -1,37 +1,30 @@
 ---
-title: "About"
-description: "A bit about me and this blog."
+title: "关于我"
+description: "关于我，以及这个博客。"
 ---
 
-AstroPaper is a minimal, accessible and SEO-friendly blog theme built with [Astro](https://astro.build/) and [Tailwind CSS](https://tailwindcss.com/).
+你好，我是 **磕盐人** —— 一个还在读研的研究生，方向偏 **后端开发与 AI**，平时喜欢把复杂的东西拆开、弄明白，然后用人话写下来。
 
-![Astro Paper](@/assets/images/astropaper-og.jpg)
+这个博客叫「盐究笔记」，是我的技术自留地：记录学习过程、项目实践，以及那些折腾很久才搞懂的踩坑。比起面面俱到的教程，我更想写**真正理解之后**的东西——讲清原理、留下思路。
 
-AstroPaper provides a solid foundation for blogs, or even portfolios\_ with full markdown support, built-in dark mode, and a clean layout that works out-of-the-box.
+## 我在做什么
 
-The blog posts in this theme also serve as guides, docs or example articles\_ making AstroPaper a flexible starting point for your next content-driven site.
+- **后端**：日常用 Java / Spring 那一套，关注框架原理、系统设计与工程实践。
+- **AI**：最近在探索把大模型用进实际工具里，也在动手做一些自己的 AI 小工具。
+- 如果你也在这两个方向折腾，欢迎一起交流。
 
-## Features
+> 想知道我「最近具体在忙什么」，可以看 [近况 / Now](/now) 页面。
 
-AstroPaper comes with a set of useful features that make content publishing easy and effective:
+## 这个博客写什么
 
-- SEO-friendly
-- Fast performance
-- Light & dark mode
-- Highly customizable
-- Organizable blog posts
-- Responsive & accessible
-- Static search with [PageFind](https://pagefind.app/)
-- Automatic social image generation
+- 源码与原理拆解（比如 Spring Boot 启动流程）
+- 项目实践与踩坑记录
+- AI 工具的探索与思考
 
-and so much more.
+内容会持续更新，如果觉得有用，欢迎通过 RSS 订阅，或在文章下方留言、点个赞鼓励一下。
 
-## Show your support
+## 联系我
 
-If you like [AstroPaper](https://github.com/satnaing/astro-paper), consider giving it a star ⭐️.
+下方页脚和首页都有我的社交链接——GitHub、邮箱、Discord 都可以找到我。有问题、有想法，或者只是想聊聊，随时欢迎。
 
-Found a bug 🐛 or have an improvement ✨ in mind? Feel free to open an [issue](https://github.com/satnaing/astro-paper/issues), submit a [pull request](https://github.com/satnaing/astro-paper/pulls) or start a [discussion](https://github.com/satnaing/astro-paper/discussions).
-
-If you find this theme helpful, you can also [sponsor me on GitHub](https://github.com/sponsors/satnaing) or [buy me a coffee](https://buymeacoffee.com/satnaing) to show your support — every penny counts.
-
-Kyay zuu! 🙏🏼
+感谢你来 🙏

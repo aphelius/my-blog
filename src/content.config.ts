@@ -31,6 +31,8 @@ const pages = defineCollection({
     description: z.string().optional(),
     ogImage: z.string().optional(),
     canonicalURL: z.string().optional(),
+    // 用于 Now 页展示「最后更新」时间，格式如 2026-06-27
+    updated: z.string().optional(),
   }),
 });
 

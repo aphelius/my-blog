@@ -6,6 +6,7 @@ export default {
     posts: "文章",
     tags: "标签",
     about: "关于",
+    now: "近况",
     archives: "归档",
     search: "搜索",
   },
