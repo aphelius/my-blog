@@ -22,6 +22,7 @@ export default {
     editPage: "编辑此页",
     previousPost: "上一篇",
     nextPost: "下一篇",
+    relatedPosts: "相关文章",
   },
   pagination: {
     prev: "上一页",

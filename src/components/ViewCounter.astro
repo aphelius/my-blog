@@ -1,0 +1,54 @@
+---
+// 文章浏览量：每个会话对同一篇 +1，其余只读取。计数存于 Cloudflare KV。
+---
+
+<span
+  id="view-counter"
+  class="text-muted-foreground inline-flex items-center gap-1 text-sm"
+  title="阅读量"
+>
+  <svg
+    class="size-4"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+  <span id="view-count">–</span>
+</span>
+
+<script>
+  async function initViews() {
+    const el = document.getElementById("view-count");
+    if (!el) return;
+
+    const slug = location.pathname.replace(/\/+$/, "");
+    const seenKey = "viewed:" + slug;
+    const firstView = sessionStorage.getItem(seenKey) !== "1";
+
+    try {
+      const res = await fetch("/api/views?slug=" + encodeURIComponent(slug), {
+        method: firstView ? "POST" : "GET",
+        ...(firstView
+          ? { headers: { "content-type": "application/json" } }
+          : {}),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { count?: number };
+      if (typeof data.count === "number") {
+        el.textContent = data.count.toLocaleString();
+        if (firstView) sessionStorage.setItem(seenKey, "1");
+      }
+    } catch {
+      /* 接口不可用（如本地 dev）时静默 */
+    }
+  }
+
+  document.addEventListener("astro:page-load", initViews);
+</script>

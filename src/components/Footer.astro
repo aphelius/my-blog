@@ -1,6 +1,8 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+import { getCollection } from "astro:content";
 import Socials from "./Socials.astro";
+import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 
 type Props = {
@@ -11,6 +13,21 @@ const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
 const t = useTranslations(Astro.currentLocale);
 const currentYear = new Date().getFullYear();
+
+// 本站上线日期（用于「已运行 N 天」实时计算）
+const SITE_LAUNCH = "2026-06-26";
+
+// 构建时统计：文章篇数与总字数
+const posts = getSortedPosts(await getCollection("posts"));
+const postCount = posts.length;
+const totalChars = posts.reduce(
+  (sum, p) => sum + (p.body?.replace(/\s+/g, "").length ?? 0),
+  0
+);
+const wordsLabel =
+  totalChars >= 10000
+    ? `${(totalChars / 10000).toFixed(1)} 万字`
+    : `${totalChars} 字`;
 ---
 
 <footer
@@ -27,4 +44,34 @@ const currentYear = new Date().getFullYear();
       <span>{t.footer.allRightsReserved}</span>
     </div>
   </div>
+  <div
+    class="text-muted-foreground border-border flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t pt-3 pb-5 text-center text-xs sm:pb-3"
+  >
+    <span>
+      本站已稳定运行
+      <span class="text-foreground" data-site-since={SITE_LAUNCH}>…</span>
+    </span>
+    <span aria-hidden="true">·</span>
+    <span>共 <span class="text-foreground">{postCount}</span> 篇</span>
+    <span aria-hidden="true">·</span>
+    <span>约 <span class="text-foreground">{wordsLabel}</span></span>
+  </div>
 </footer>
+
+<script>
+  function updateRunningDays() {
+    const el = document.querySelector<HTMLElement>("[data-site-since]");
+    if (!el) return;
+    const since = el.dataset.siteSince;
+    if (!since) return;
+    const start = new Date(since).getTime();
+    if (Number.isNaN(start)) return;
+    const days = Math.max(
+      1,
+      Math.floor((Date.now() - start) / (24 * 60 * 60 * 1000))
+    );
+    el.textContent = `${days} 天`;
+  }
+
+  document.addEventListener("astro:page-load", updateRunningDays);
+</script>

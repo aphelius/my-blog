@@ -1,0 +1,61 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { getPostUrl } from "@/utils/getPostPaths";
+import { useTranslations } from "@/i18n";
+import Datetime from "./Datetime.astro";
+
+type Props = {
+  post: CollectionEntry<"posts">;
+  max?: number;
+};
+
+const { post, max = 3 } = Astro.props;
+const locale = Astro.currentLocale;
+const t = useTranslations(locale);
+
+const tags = new Set(post.data.tags);
+const all = getSortedPosts(await getCollection("posts"));
+
+// 按共享标签数打分，排除自身；得分相同时已按更新时间倒序（getSortedPosts）
+const related = all
+  .filter(p => p.id !== post.id)
+  .map(p => ({
+    post: p,
+    score: p.data.tags.filter(tag => tags.has(tag)).length,
+  }))
+  .filter(item => item.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, max)
+  .map(item => item.post);
+---
+
+{
+  related.length > 0 && (
+    <>
+      <hr class="my-8 border-dashed" />
+      <section aria-label={t.post.relatedPosts}>
+        <h2 class="text-xl font-semibold tracking-wide">
+          {t.post.relatedPosts}
+        </h2>
+        <ul>
+          {related.map(p => (
+            <li class="card-anim my-4">
+              <a
+                href={getPostUrl(p.id, p.filePath, locale)}
+                class="text-accent inline-block text-lg font-medium decoration-dashed underline-offset-4 hover:underline"
+              >
+                {p.data.title}
+              </a>
+              <Datetime
+                pubDatetime={p.data.pubDatetime}
+                modDatetime={p.data.modDatetime}
+                timezone={p.data.timezone}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  )
+}
