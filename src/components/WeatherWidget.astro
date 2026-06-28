@@ -92,23 +92,35 @@
     }
   }
 
-  // 反向地理编码：把经纬度换成城市名（BigDataCloud 免费、无需 key、支持 CORS）
+  // 反向地理编码：把经纬度换成城市名（BigDataCloud 免费、无需 key、支持 CORS）。
+  // 国内用简体中文名，国外用英文名。先取 zh（多数访客在国内，省一次请求），
+  // 若 countryCode 非 CN 则再取一次 en。
+  type GeoResp = {
+    locality?: string;
+    city?: string;
+    principalSubdivision?: string;
+    countryCode?: string;
+  };
   async function reverseCity(lat: number, lon: number): Promise<string> {
-    try {
-      const r = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client` +
-          `?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
-      );
-      if (!r.ok) return "";
-      const d = (await r.json()) as {
-        locality?: string;
-        city?: string;
-        principalSubdivision?: string;
-      };
-      return d.locality || d.city || d.principalSubdivision || "";
-    } catch {
-      return "";
-    }
+    const get = async (lang: string): Promise<GeoResp | null> => {
+      try {
+        const r = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client` +
+            `?latitude=${lat}&longitude=${lon}&localityLanguage=${lang}`
+        );
+        return r.ok ? ((await r.json()) as GeoResp) : null;
+      } catch {
+        return null;
+      }
+    };
+    const pick = (d: GeoResp) =>
+      d.locality || d.city || d.principalSubdivision || "";
+
+    const zh = await get("zh");
+    if (!zh) return "";
+    if (zh.countryCode === "CN") return pick(zh);
+    const en = await get("en");
+    return pick(en ?? zh);
   }
 
   async function fetchWeather(query = ""): Promise<Weather | null> {

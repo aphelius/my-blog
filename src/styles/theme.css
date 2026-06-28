@@ -7,7 +7,10 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --font-app: var(--font-google-sans-code);
+  /* 拉丁/代码用 Google Sans Code，中文字符按字形回退到简体黑体 */
+  --font-app:
+    var(--font-google-sans-code), "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
 }
 
 /* Light theme values */
