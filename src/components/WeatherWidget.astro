@@ -1,0 +1,99 @@
+---
+// 首页实时天气：客户端请求 /api/weather（Cloudflare Function 用访客 IP 定位）。
+// 本地 dev 无 Functions 会优雅隐藏；纯文本无动画，不受 prefers-reduced-motion 影响。
+---
+
+<span
+  id="weather-widget"
+  class="text-muted-foreground mt-3 hidden items-center gap-1 text-sm"
+  aria-live="polite"
+>
+</span>
+
+<script>
+  // WMO weather_code -> emoji + 中文描述
+  const WMO: Record<number, [string, string]> = {
+    0: ["☀️", "晴"],
+    1: ["🌤️", "大致晴朗"],
+    2: ["⛅", "多云"],
+    3: ["☁️", "阴"],
+    45: ["🌫️", "雾"],
+    48: ["🌫️", "雾凇"],
+    51: ["🌦️", "小毛毛雨"],
+    53: ["🌦️", "毛毛雨"],
+    55: ["🌧️", "大毛毛雨"],
+    61: ["🌦️", "小雨"],
+    63: ["🌧️", "中雨"],
+    65: ["🌧️", "大雨"],
+    66: ["🌧️", "冻雨"],
+    67: ["🌧️", "强冻雨"],
+    71: ["🌨️", "小雪"],
+    73: ["🌨️", "中雪"],
+    75: ["❄️", "大雪"],
+    77: ["❄️", "雪粒"],
+    80: ["🌦️", "阵雨"],
+    81: ["🌧️", "强阵雨"],
+    82: ["⛈️", "暴雨"],
+    85: ["🌨️", "阵雪"],
+    86: ["❄️", "强阵雪"],
+    95: ["⛈️", "雷阵雨"],
+    96: ["⛈️", "雷阵雨伴冰雹"],
+    99: ["⛈️", "强雷暴伴冰雹"],
+  };
+
+  const CACHE_KEY = "weather:v1";
+  const TTL = 30 * 60 * 1000; // 30 分钟
+
+  type Weather = {
+    city: string;
+    temperature: number | null;
+    code: number | null;
+    isDay: boolean;
+  };
+
+  function render(el: HTMLElement, w: Weather) {
+    if (w.temperature == null) return;
+    const [emoji, desc] = WMO[w.code ?? -1] ?? ["🌡️", ""];
+    const place = w.city ? `${w.city} ` : "";
+    el.textContent = `${emoji} ${place}${w.temperature}°C ${desc}`.trim();
+    el.classList.remove("hidden");
+    el.classList.add("flex");
+  }
+
+  async function initWeather() {
+    const el = document.getElementById("weather-widget");
+    if (!el) return;
+
+    // 会话内缓存，避免重复请求
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { t, w } = JSON.parse(raw);
+        if (Date.now() - t < TTL) {
+          render(el, w);
+          return;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+      const res = await fetch(`${base}api/weather`);
+      if (!res.ok) return; // 本地 dev / 接口异常：静默隐藏
+      const w = (await res.json()) as Weather;
+      if (w.temperature == null) return;
+      render(el, w);
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), w }));
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* 网络失败：保持隐藏 */
+    }
+  }
+
+  document.addEventListener("astro:page-load", initWeather);
+</script>

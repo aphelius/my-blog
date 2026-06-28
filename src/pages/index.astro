@@ -7,6 +7,7 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Socials from "@/components/Socials.astro";
+import WeatherWidget from "@/components/WeatherWidget.astro";
 import Card from "@/components/Card.astro";
 import LinkButton from "@/components/LinkButton.astro";
 import { getSortedPosts } from "@/utils/getSortedPosts";
@@ -54,6 +55,8 @@ const homePath = getRelativeLocaleUrl(locale, "");
         />
         <span class="sr-only">RSS Feed</span>
       </a>
+
+      <WeatherWidget />
 
       <p class="reveal">
         欢迎来到「盐究笔记」—— 一个磕盐人的技术自留地，记录学习、实践与那些值得写下来的踩坑。
