@@ -92,33 +92,39 @@
     }
   }
 
-  // 反向地理编码：把经纬度换成城市名（BigDataCloud 免费、无需 key、支持 CORS）。
-  // 国内用简体中文名，国外用英文名。先取 zh（多数访客在国内，省一次请求），
-  // 若 countryCode 非 CN 则再取一次 en。
-  type GeoResp = {
-    locality?: string;
-    city?: string;
-    principalSubdivision?: string;
-    countryCode?: string;
+  // 反向地理编码：把经纬度换成城市名（Nominatim / OSM，免费、支持 CORS）。
+  // 国内用简体中文名（accept-language=zh-CN），国外用英文名。先取 zh-CN
+  // （多数访客在国内，省一次请求），若国家非 CN 则再取一次 en。
+  type NomResp = {
+    address?: {
+      city?: string;
+      town?: string;
+      county?: string;
+      municipality?: string;
+      state?: string;
+      country_code?: string;
+    };
   };
   async function reverseCity(lat: number, lon: number): Promise<string> {
-    const get = async (lang: string): Promise<GeoResp | null> => {
+    const get = async (lang: string): Promise<NomResp | null> => {
       try {
         const r = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client` +
-            `?latitude=${lat}&longitude=${lon}&localityLanguage=${lang}`
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2` +
+            `&addressdetails=1&lat=${lat}&lon=${lon}&accept-language=${lang}`
         );
-        return r.ok ? ((await r.json()) as GeoResp) : null;
+        return r.ok ? ((await r.json()) as NomResp) : null;
       } catch {
         return null;
       }
     };
-    const pick = (d: GeoResp) =>
-      d.locality || d.city || d.principalSubdivision || "";
+    const pick = (d: NomResp) => {
+      const a = d.address ?? {};
+      return a.city || a.town || a.county || a.municipality || a.state || "";
+    };
 
-    const zh = await get("zh");
+    const zh = await get("zh-CN");
     if (!zh) return "";
-    if (zh.countryCode === "CN") return pick(zh);
+    if (zh.address?.country_code === "cn") return pick(zh);
     const en = await get("en");
     return pick(en ?? zh);
   }
