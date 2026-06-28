@@ -1,7 +1,8 @@
 // Cloudflare Pages Function：首页实时天气。
-// 用 request.cf 的 IP 定位（经纬度 + 城市名）调用 Open-Meteo（免费、无需 key），
-// 返回当前气温与天气代码给前端。本地 astro dev 不跑 Functions，会优雅降级。
-//   GET /api/weather -> { city, temperature, code, isDay }
+// 默认用 request.cf 的 IP 定位（城市级，可能落到省会）；若带上 ?lat=&lon=
+// （来自浏览器精确定位）则优先使用，以提升精度。调用 Open-Meteo（免费、无需 key）。
+// 本地 astro dev 不跑 Functions，会优雅降级。
+//   GET /api/weather[?lat=..&lon=..&city=..] -> { city, temperature, code, isDay }
 
 interface Env {
   // 暂无绑定需求；保留以备扩展（如缓存到 KV）。
@@ -20,13 +21,25 @@ function json(data: unknown, status = 200): Response {
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ request }) => {
-  // Cloudflare 在 request.cf 上注入访客地理信息
-  const cf = (request as Request & { cf?: IncomingRequestCfProperties }).cf;
-  const lat = cf?.latitude;
-  const lon = cf?.longitude;
-  const city = cf?.city ?? cf?.region ?? "";
+  const params = new URL(request.url).searchParams;
 
-  if (!lat || !lon) {
+  // 优先使用客户端传入的精确经纬度（浏览器 Geolocation）；否则回退到 IP 定位
+  const qLat = parseFloat(params.get("lat") ?? "");
+  const qLon = parseFloat(params.get("lon") ?? "");
+  const hasPrecise =
+    Number.isFinite(qLat) &&
+    Number.isFinite(qLon) &&
+    Math.abs(qLat) <= 90 &&
+    Math.abs(qLon) <= 180;
+
+  const cf = (request as Request & { cf?: IncomingRequestCfProperties }).cf;
+  const lat = hasPrecise ? qLat : cf?.latitude;
+  const lon = hasPrecise ? qLon : cf?.longitude;
+  const city = hasPrecise
+    ? (params.get("city") ?? "").slice(0, 60)
+    : (cf?.city ?? cf?.region ?? "");
+
+  if (lat == null || lon == null) {
     return json({ error: "no geolocation" }, 422);
   }
 

@@ -1,5 +1,8 @@
 ---
-// 首页实时天气：客户端请求 /api/weather（Cloudflare Function 用访客 IP 定位）。
+// 首页实时天气（混合定位）：
+//   默认走 /api/weather 的 IP 定位（城市级，可能落到省会）；
+//   点 📍 按钮触发浏览器精确定位（需授权），用更准的经纬度重新拉取。
+//   若此前已授权，再次进入会自动用精确定位（不再弹窗）。
 // 本地 dev 无 Functions 会优雅隐藏；纯文本无动画，不受 prefers-reduced-motion 影响。
 ---
 
@@ -8,6 +11,16 @@
   class="text-muted-foreground mt-3 hidden items-center gap-1 text-sm"
   aria-live="polite"
 >
+  <span id="weather-text"></span>
+  <button
+    id="weather-locate"
+    type="button"
+    title="使用精确定位"
+    aria-label="使用精确定位"
+    class="hover:text-accent ml-1 hidden rounded px-1 transition-colors"
+  >
+    📍
+  </button>
 </span>
 
 <script>
@@ -42,6 +55,7 @@
   };
 
   const CACHE_KEY = "weather:v1";
+  const PRECISE_KEY = "weather:precise"; // localStorage：用户已选精确定位
   const TTL = 30 * 60 * 1000; // 30 分钟
 
   type Weather = {
@@ -51,20 +65,130 @@
     isDay: boolean;
   };
 
-  function render(el: HTMLElement, w: Weather) {
+  const base = () => import.meta.env.BASE_URL.replace(/\/?$/, "/");
+
+  function render(w: Weather) {
     // 广播给天气特效层（首页背景），即便不显示气温也通知
     window.dispatchEvent(new CustomEvent("weather:update", { detail: w }));
+    const wrap = document.getElementById("weather-widget");
+    const text = document.getElementById("weather-text");
+    const btn = document.getElementById("weather-locate");
+    if (!wrap || !text) return;
     if (w.temperature == null) return;
     const [emoji, desc] = WMO[w.code ?? -1] ?? ["🌡️", ""];
     const place = w.city ? `${w.city} ` : "";
-    el.textContent = `${emoji} ${place}${w.temperature}°C ${desc}`.trim();
-    el.classList.remove("hidden");
-    el.classList.add("flex");
+    text.textContent = `${emoji} ${place}${w.temperature}°C ${desc}`.trim();
+    wrap.classList.remove("hidden");
+    wrap.classList.add("flex");
+    // 支持地理定位才显示 📍 按钮
+    if (btn && "geolocation" in navigator) btn.classList.remove("hidden");
+  }
+
+  function cache(w: Weather) {
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), w }));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 反向地理编码：把经纬度换成城市名（BigDataCloud 免费、无需 key、支持 CORS）
+  async function reverseCity(lat: number, lon: number): Promise<string> {
+    try {
+      const r = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client` +
+          `?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
+      );
+      if (!r.ok) return "";
+      const d = (await r.json()) as {
+        locality?: string;
+        city?: string;
+        principalSubdivision?: string;
+      };
+      return d.locality || d.city || d.principalSubdivision || "";
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchWeather(query = ""): Promise<Weather | null> {
+    try {
+      const res = await fetch(`${base()}api/weather${query}`);
+      if (!res.ok) return null;
+      const w = (await res.json()) as Weather;
+      return w.temperature == null ? null : w;
+    } catch {
+      return null;
+    }
+  }
+
+  // 用浏览器精确定位刷新天气
+  function locatePrecise(viaButton: boolean) {
+    if (!("geolocation" in navigator)) return;
+    const btn = document.getElementById("weather-locate");
+    if (btn && viaButton) btn.textContent = "⏳";
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const { latitude, longitude } = pos.coords;
+        const city = await reverseCity(latitude, longitude);
+        const q =
+          `?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}` +
+          (city ? `&city=${encodeURIComponent(city)}` : "");
+        const w = await fetchWeather(q);
+        if (btn) btn.textContent = "📍";
+        if (!w) return;
+        // 客户端有更准的城市名时优先用它
+        if (city) w.city = city;
+        render(w);
+        cache(w);
+        try {
+          localStorage.setItem(PRECISE_KEY, "1");
+        } catch {
+          /* ignore */
+        }
+      },
+      () => {
+        // 用户拒绝 / 超时：保持 IP 结果，清除自动精确标记
+        if (btn) btn.textContent = "📍";
+        try {
+          localStorage.removeItem(PRECISE_KEY);
+        } catch {
+          /* ignore */
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10 * 60 * 1000 }
+    );
+  }
+
+  async function maybeAutoPrecise(): Promise<boolean> {
+    let optedIn = false;
+    try {
+      optedIn = localStorage.getItem(PRECISE_KEY) === "1";
+    } catch {
+      /* ignore */
+    }
+    if (!optedIn || !("permissions" in navigator)) return false;
+    try {
+      const status = await navigator.permissions.query({
+        name: "geolocation" as PermissionName,
+      });
+      if (status.state === "granted") {
+        locatePrecise(false); // 已授权：静默精确定位，不弹窗
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
   }
 
   async function initWeather() {
     const el = document.getElementById("weather-widget");
     if (!el) return;
+
+    // 绑定 📍 按钮
+    const btn = document.getElementById("weather-locate");
+    btn?.addEventListener("click", () => locatePrecise(true));
 
     // 会话内缓存，避免重复请求
     try {
@@ -72,7 +196,9 @@
       if (raw) {
         const { t, w } = JSON.parse(raw);
         if (Date.now() - t < TTL) {
-          render(el, w);
+          render(w);
+          // 缓存命中后仍尝试静默精确化（若已授权）
+          maybeAutoPrecise();
           return;
         }
       }
@@ -80,21 +206,14 @@
       /* ignore */
     }
 
-    try {
-      const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
-      const res = await fetch(`${base}api/weather`);
-      if (!res.ok) return; // 本地 dev / 接口异常：静默隐藏
-      const w = (await res.json()) as Weather;
-      if (w.temperature == null) return;
-      render(el, w);
-      try {
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), w }));
-      } catch {
-        /* ignore */
-      }
-    } catch {
-      /* 网络失败：保持隐藏 */
-    }
+    // 先尝试静默精确定位；否则回退 IP
+    const auto = await maybeAutoPrecise();
+    if (auto) return;
+
+    const w = await fetchWeather();
+    if (!w) return; // 本地 dev / 接口异常：静默隐藏
+    render(w);
+    cache(w);
   }
 
   document.addEventListener("astro:page-load", initWeather);
