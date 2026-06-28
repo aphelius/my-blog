@@ -1,21 +1,10 @@
 ---
-// 键盘彩蛋：依次按下 ↑↑↓↓←→←→ B A（经典 Konami code）触发庆祝特效。
+// 键盘彩蛋：依次按下 ↑↑↓↓ 触发庆祝特效。
 // 用户主动触发，非环境动画，故阅读页也可安全包含。受 prefers-reduced-motion 降级。
 ---
 
 <script>
-  const SEQUENCE = [
-    "ArrowUp",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight",
-    "ArrowLeft",
-    "ArrowRight",
-    "b",
-    "a",
-  ];
+  const SEQUENCE = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown"];
 
   const COLORS = [
     "#f94144",
