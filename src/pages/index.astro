@@ -8,6 +8,7 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Socials from "@/components/Socials.astro";
 import WeatherWidget from "@/components/WeatherWidget.astro";
+import WeatherEffect from "@/components/WeatherEffect.astro";
 import Card from "@/components/Card.astro";
 import LinkButton from "@/components/LinkButton.astro";
 import { getSortedPosts } from "@/utils/getSortedPosts";
@@ -27,6 +28,7 @@ const homePath = getRelativeLocaleUrl(locale, "");
 ---
 
 <Layout>
+  <WeatherEffect />
   <Header />
   <main
     id="main-content"
@@ -58,7 +60,14 @@ const homePath = getRelativeLocaleUrl(locale, "");
 
       <WeatherWidget />
 
-      <p class="reveal">
+      <p
+        id="time-greeting"
+        class="reveal text-accent mt-3 font-medium"
+        hidden
+      >
+      </p>
+
+      <p class="reveal mt-2">
         欢迎来到「盐究笔记」—— 一个磕盐人的技术自留地，记录学习、实践与那些值得写下来的踩坑。
       </p>
       <p class="reveal mt-2">
@@ -129,6 +138,21 @@ const homePath = getRelativeLocaleUrl(locale, "");
 </Layout>
 
 <script>
+  // 按访客本地时间切换欢迎语
+  function updateGreeting() {
+    const el = document.getElementById("time-greeting");
+    if (!el) return;
+    const h = new Date().getHours();
+    let text: string;
+    if (h >= 5 && h < 11) text = "早上好 ☀️ 新的一天，元气满满～";
+    else if (h >= 11 && h < 13) text = "中午好 🍱 记得好好吃饭。";
+    else if (h >= 13 && h < 18) text = "下午好 ☕ 来杯咖啡继续战斗。";
+    else if (h >= 18 && h < 23) text = "晚上好 🌆 辛苦一天啦。";
+    else text = "夜深了 🌙 别熬太晚，早点休息。";
+    el.textContent = text;
+    el.removeAttribute("hidden");
+  }
+
   document.addEventListener("astro:page-load", () => {
     const indexLayout = (document.querySelector("#main-content") as HTMLElement)
       ?.dataset;
@@ -136,5 +160,6 @@ const homePath = getRelativeLocaleUrl(locale, "");
     if (indexLayout?.layout) {
       sessionStorage.setItem("backUrl", indexLayout.homePath ?? baseRoot);
     }
+    updateGreeting();
   });
 </script>

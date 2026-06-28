@@ -1,0 +1,98 @@
+---
+// 键盘彩蛋：依次按下 ↑↑↓↓←→←→ B A（经典 Konami code）触发庆祝特效。
+// 用户主动触发，非环境动画，故阅读页也可安全包含。受 prefers-reduced-motion 降级。
+---
+
+<script>
+  const SEQUENCE = [
+    "ArrowUp",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowLeft",
+    "ArrowRight",
+    "b",
+    "a",
+  ];
+
+  const COLORS = [
+    "#f94144",
+    "#f3722c",
+    "#f8961e",
+    "#f9c74f",
+    "#90be6d",
+    "#43aa8b",
+    "#577590",
+    "#a78bfa",
+  ];
+
+  const prefersReducedMotion = () =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function rainConfetti() {
+    if (prefersReducedMotion()) return;
+    const total = 80;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for (let i = 0; i < total; i++) {
+      const piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      const left = Math.random() * w;
+      piece.style.left = `${left}px`;
+      piece.style.top = `-16px`;
+      piece.style.background =
+        COLORS[Math.floor(Math.random() * COLORS.length)];
+      piece.style.setProperty("--dx", `${(Math.random() - 0.5) * 160}px`);
+      piece.style.setProperty("--dy", `${h * (0.6 + Math.random() * 0.5)}px`);
+      piece.style.animationDelay = `${Math.random() * 0.6}s`;
+      piece.style.animationDuration = `${1.4 + Math.random() * 1.2}s`;
+      document.body.appendChild(piece);
+      window.setTimeout(() => piece.remove(), 3000);
+    }
+  }
+
+  function showToast() {
+    const existing = document.getElementById("konami-toast");
+    if (existing) return;
+    const toast = document.createElement("div");
+    toast.id = "konami-toast";
+    toast.className =
+      "mascot-toast bg-background border-border text-foreground fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 rounded-xl border px-5 py-3 text-center shadow-lg";
+    toast.innerHTML =
+      '<span class="mascot-face text-2xl">🎮</span> ' +
+      '<span class="ml-1 align-middle">你发现了隐藏彩蛋！愿你 bug 永远在别处 🎉</span>';
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("is-shown"));
+    window.setTimeout(() => {
+      toast.classList.remove("is-shown");
+      window.setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  }
+
+  let pos = 0;
+
+  function onKeydown(e: KeyboardEvent) {
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const expected = SEQUENCE[pos];
+    if (key === expected) {
+      pos += 1;
+      if (pos === SEQUENCE.length) {
+        pos = 0;
+        rainConfetti();
+        showToast();
+      }
+    } else {
+      // 容错：若当前键匹配序列首位，从 1 重新开始
+      pos = key === SEQUENCE[0] ? 1 : 0;
+    }
+  }
+
+  // 全站只绑定一次（ClientRouter 软导航不会重复执行内联模块脚本，
+  // 但为稳妥起见用标志位防重复）
+  if (!(window as any).__konamiBound) {
+    (window as any).__konamiBound = true;
+    document.addEventListener("keydown", onKeydown);
+  }
+</script>

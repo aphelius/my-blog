@@ -52,6 +52,8 @@
   };
 
   function render(el: HTMLElement, w: Weather) {
+    // 广播给天气特效层（首页背景），即便不显示气温也通知
+    window.dispatchEvent(new CustomEvent("weather:update", { detail: w }));
     if (w.temperature == null) return;
     const [emoji, desc] = WMO[w.code ?? -1] ?? ["🌡️", ""];
     const place = w.city ? `${w.city} ` : "";

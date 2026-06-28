@@ -1,0 +1,132 @@
+---
+// 首页天气特效层：监听 WeatherWidget 广播的天气，往极光层(.aurora-bg)注入
+// 对应的粒子/辉光（晴/阴/雾/雨/雪/雷暴）。仅首页生效；受 prefers-reduced-motion 降级。
+---
+
+<script>
+  type Weather = { code: number | null };
+
+  const CACHE_KEY = "weather:v1";
+
+  const prefersReducedMotion = () =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // WMO weather_code -> 特效类别
+  function categoryOf(code: number | null): string {
+    if (code == null) return "";
+    if (code <= 1) return "clear";
+    if (code === 45 || code === 48) return "fog";
+    if (code <= 3) return "cloudy";
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+    if (code >= 95) return "thunder";
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+    return "cloudy";
+  }
+
+  function isHome(): boolean {
+    return !!document.querySelector('#main-content[data-layout="index"]');
+  }
+
+  function clearFx(layer: HTMLElement) {
+    layer
+      .querySelectorAll(".wfx-sun,.wfx-fog,.wfx-rain,.wfx-snow,.wfx-flash")
+      .forEach(n => n.remove());
+  }
+
+  function buildRain(layer: HTMLElement, count: number) {
+    for (let i = 0; i < count; i++) {
+      const d = document.createElement("span");
+      d.className = "wfx-rain";
+      d.style.left = `${Math.random() * 100}%`;
+      d.style.animationDuration = `${0.5 + Math.random() * 0.5}s`;
+      d.style.animationDelay = `${Math.random() * 2}s`;
+      d.style.opacity = `${0.3 + Math.random() * 0.5}`;
+      layer.appendChild(d);
+    }
+  }
+
+  function buildSnow(layer: HTMLElement, count: number) {
+    for (let i = 0; i < count; i++) {
+      const f = document.createElement("span");
+      f.className = "wfx-snow";
+      const size = 3 + Math.random() * 5;
+      f.style.left = `${Math.random() * 100}%`;
+      f.style.width = `${size}px`;
+      f.style.height = `${size}px`;
+      f.style.setProperty("--drift", `${(Math.random() - 0.5) * 80}px`);
+      f.style.animationDuration = `${6 + Math.random() * 6}s`;
+      f.style.animationDelay = `${Math.random() * 6}s`;
+      f.style.opacity = `${0.4 + Math.random() * 0.5}`;
+      layer.appendChild(f);
+    }
+  }
+
+  function addEl(layer: HTMLElement, cls: string) {
+    const el = document.createElement("span");
+    el.className = cls;
+    layer.appendChild(el);
+  }
+
+  function applyWeather(w: Weather) {
+    if (!isHome()) return;
+    const layer = document.querySelector<HTMLElement>(".aurora-bg");
+    if (!layer) return;
+
+    const cat = categoryOf(w.code);
+    layer.dataset.weather = cat;
+    clearFx(layer);
+
+    if (prefersReducedMotion() || !cat) return;
+
+    switch (cat) {
+      case "clear":
+        addEl(layer, "wfx-sun");
+        break;
+      case "fog":
+        addEl(layer, "wfx-fog");
+        break;
+      case "rain":
+        buildRain(layer, 60);
+        break;
+      case "snow":
+        buildSnow(layer, 45);
+        break;
+      case "thunder":
+        buildRain(layer, 70);
+        addEl(layer, "wfx-flash");
+        break;
+      // cloudy 仅靠 data-weather 弱化极光，无需粒子
+    }
+  }
+
+  function initFromCache() {
+    if (!isHome()) return;
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return;
+      const { w } = JSON.parse(raw);
+      if (w) applyWeather(w);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 离开页面时清理，避免在非首页(同样有极光层)上残留
+  function cleanup() {
+    const layer = document.querySelector<HTMLElement>(".aurora-bg");
+    if (layer) {
+      clearFx(layer);
+      delete layer.dataset.weather;
+    }
+  }
+
+  if (!(window as any).__weatherFxBound) {
+    (window as any).__weatherFxBound = true;
+    window.addEventListener("weather:update", (e: Event) => {
+      applyWeather((e as CustomEvent<Weather>).detail);
+    });
+  }
+
+  document.addEventListener("astro:page-load", initFromCache);
+  document.addEventListener("astro:before-swap", cleanup);
+</script>

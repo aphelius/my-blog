@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from "astro/types";
 import { getCollection } from "astro:content";
 import Socials from "./Socials.astro";
+import KonamiEasterEgg from "./KonamiEasterEgg.astro";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 
@@ -56,6 +57,7 @@ const wordsLabel =
     <span aria-hidden="true">·</span>
     <span>约 <span class="text-foreground">{wordsLabel}</span></span>
   </div>
+  <KonamiEasterEgg />
 </footer>
 
 <script>

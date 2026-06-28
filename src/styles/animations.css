@@ -288,10 +288,135 @@
   margin: -48px 0 0 -48px;
 }
 
+/* ---------- 8. 随天气变化的首页特效（仅首页，叠在极光层内） ---------- */
+/* 容器 .aurora-bg 上的 data-weather 决定整体色调；粒子由 JS 注入 */
+
+/* 晴：暖色阳光辉光 */
+.wfx-sun {
+  position: absolute;
+  top: 6%;
+  right: 10%;
+  width: 32vmax;
+  height: 32vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 211, 122, 0.55),
+    rgba(255, 211, 122, 0) 70%
+  );
+  filter: blur(24px);
+  pointer-events: none;
+  animation: wfx-sun-pulse 6s ease-in-out infinite alternate;
+}
+@keyframes wfx-sun-pulse {
+  to {
+    transform: scale(1.14);
+    opacity: 0.75;
+  }
+}
+
+/* 阴 / 雾：弱化并去色极光 */
+.aurora-bg[data-weather="cloudy"] .aurora-blob,
+.aurora-bg[data-weather="fog"] .aurora-blob {
+  filter: grayscale(0.7);
+  opacity: 0.22;
+}
+/* 雾：缓慢横移的薄雾 */
+.wfx-fog {
+  position: absolute;
+  inset: -10% -30%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-foreground) 14%, transparent),
+    transparent
+  );
+  pointer-events: none;
+  animation: wfx-fog-drift 16s linear infinite;
+}
+@keyframes wfx-fog-drift {
+  from {
+    transform: translateX(-20%);
+  }
+  to {
+    transform: translateX(20%);
+  }
+}
+
+/* 雨：细线下落 */
+.wfx-rain {
+  position: absolute;
+  top: -20%;
+  width: 1px;
+  height: 16%;
+  background: linear-gradient(
+    transparent,
+    color-mix(in srgb, var(--color-accent) 55%, transparent)
+  );
+  pointer-events: none;
+  animation: wfx-rain-fall linear infinite;
+}
+@keyframes wfx-rain-fall {
+  to {
+    transform: translateY(150vh);
+  }
+}
+
+/* 雪：圆点缓降并横向飘移 */
+.wfx-snow {
+  position: absolute;
+  top: -5%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-foreground) 75%, transparent);
+  pointer-events: none;
+  animation: wfx-snow-fall linear infinite;
+}
+@keyframes wfx-snow-fall {
+  to {
+    transform: translate(var(--drift, 0), 115vh);
+  }
+}
+
+/* 雷暴：偶发闪电 + 复用雨 */
+.wfx-flash {
+  position: absolute;
+  inset: 0;
+  background: var(--color-foreground);
+  opacity: 0;
+  pointer-events: none;
+  animation: wfx-flash 7s ease-out infinite;
+}
+@keyframes wfx-flash {
+  0%,
+  90%,
+  100% {
+    opacity: 0;
+  }
+  91% {
+    opacity: 0.16;
+  }
+  92% {
+    opacity: 0;
+  }
+  94% {
+    opacity: 0.1;
+  }
+  95% {
+    opacity: 0;
+  }
+}
+
 /* ---------- 无障碍：减弱动态效果时全部关闭 ---------- */
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob {
     animation: none;
+  }
+  .wfx-sun,
+  .wfx-fog,
+  .wfx-rain,
+  .wfx-snow,
+  .wfx-flash {
+    display: none;
   }
   .cursor-lens {
     display: none;
